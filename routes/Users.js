@@ -15,21 +15,21 @@ users.post('/register', (req, res) => {
 		username: req.body.username,
 		email: req.body.email,
 		password: req.body.password,
-		created: today
+		created: today,
 	}
 
 	User.findOne({
-		email: req.body.email
+		email: req.body.email,
 	})
-		.then(user => {
+		.then((user) => {
 			if (!user) {
 				bcrypt.hash(req.body.password, 10, (err, hash) => {
 					userData.password = hash
 					User.create(userData)
-						.then(user => {
+						.then((user) => {
 							res.json({ status: user.email + ' Registered!' })
 						})
-						.catch(err => {
+						.catch((err) => {
 							res.send('error: ' + err)
 						})
 				})
@@ -37,26 +37,26 @@ users.post('/register', (req, res) => {
 				res.json({ error: 'User already exists' })
 			}
 		})
-		.catch(err => {
+		.catch((err) => {
 			res.send('error: ' + err)
 		})
 })
 
 users.post('/login', (req, res) => {
 	User.findOne({
-		email: req.body.email
+		email: req.body.email,
 	})
-		.then(user => {
+		.then((user) => {
 			if (user) {
 				if (bcrypt.compareSync(req.body.password, user.password)) {
 					// Passwords match
 					const payload = {
 						_id: user._id,
 						username: user.username,
-						email: user.email
+						email: user.email,
 					}
 					let token = jwt.sign(payload, process.env.SECRET_KEY, {
-						expiresIn: 1440
+						expiresIn: 1440,
 					})
 					res.send(token)
 				} else {
@@ -67,7 +67,7 @@ users.post('/login', (req, res) => {
 				res.json({ error: 'User does not exist' })
 			}
 		})
-		.catch(err => {
+		.catch((err) => {
 			res.send('error: ' + err)
 		})
 })
@@ -76,18 +76,62 @@ users.get('/profile', (req, res) => {
 	var decoded = jwt.verify(req.headers['authorization'], process.env.SECRET_KEY)
 
 	User.findOne({
-		_id: decoded._id
+		_id: decoded._id,
 	})
-		.then(user => {
+		.then((user) => {
 			if (user) {
 				res.json(user)
 			} else {
 				res.send('User does not exist')
 			}
 		})
-		.catch(err => {
+		.catch((err) => {
 			res.send('error: ' + err)
 		})
+})
+
+users.post('/favoritos', (req, res) => {
+	User.findOne({ email: req.body.email })
+		.then((usuario) => {
+			if (usuario) {
+				const arr = usuario.favoritos
+				arr.push(req.body.nuevo)
+
+				User.updateOne({ email: req.body.email }, { $set: { favoritos: arr } })
+					.then(() => res.json({ status: `actualizado con exito!` }))
+					.catch((err) => res.status(500).send(`error: ${err}`))
+			} else res.json({ error: 'Problema, no se encuentra el correo' })
+		})
+		.catch((err) => res.status(500).send(`error: ${err}`))
+})
+
+users.put('/favoritos', (req, res) => {
+	User.findOne({ email: req.body.email })
+		.then((usuario) => {
+			if (usuario) {
+				let arr = usuario.favoritos
+				const posicion = arr.findIndex(
+					(element) => element === req.body.eliminar
+				)
+				arr.splice(posicion, 1)
+
+				User.updateOne({ email: req.body.email }, { $set: { favoritos: arr } })
+					.then(() => res.json({ status: `actualizado con exito!` }))
+					.catch((err) => res.status(500).send(`error: ${err}`))
+			} else res.json({ error: 'Problema, no se encuentra el correo' })
+		})
+		.catch((err) => res.status(500).send(`error: ${err}`))
+})
+
+users.get('/favoritos/:email', (req, res) => {
+	User.findOne({
+		email: req.params.email,
+	})
+		.then((usuario) => {
+			if (usuario) res.json({ favoritos: usuario.favoritos })
+			else res.send('Problema, no se encuentra el correo')
+		})
+		.catch((err) => res.send(`error: ${err}`))
 })
 
 module.exports = users
