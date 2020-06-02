@@ -52,7 +52,15 @@ builds.put('/', (req, res) => {
 		}
 	)
 		.then((build) => {
-			res.status(200).json({ status: 'actualizado' })
+			Build.find({
+				emailUsuario: req.body.emailUsuario,
+			})
+				.then((builds) => {
+					res.status(200).json(builds)
+				})
+				.catch((err) => {
+					res.status(500).send('error: ' + err)
+				})
 		})
 		.catch((err) => {
 			res.status(500).send('error: ' + err)

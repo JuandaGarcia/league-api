@@ -116,7 +116,16 @@ users.put('/favoritos', (req, res) => {
 				arr.splice(posicion, 1)
 
 				User.updateOne({ email: req.body.email }, { $set: { favoritos: arr } })
-					.then(() => res.json({ status: `actualizado con exito!` }))
+					.then(() => {
+						User.findOne({
+							email: req.body.email,
+						})
+							.then((usuario) => {
+								if (usuario) res.json({ favoritos: usuario.favoritos })
+								else res.send('Problema, no se encuentra el correo')
+							})
+							.catch((err) => res.send(`error: ${err}`))
+					})
 					.catch((err) => res.status(500).send(`error: ${err}`))
 			} else res.json({ error: 'Problema, no se encuentra el correo' })
 		})
